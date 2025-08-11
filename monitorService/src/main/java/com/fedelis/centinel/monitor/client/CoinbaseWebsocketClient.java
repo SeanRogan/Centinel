@@ -7,6 +7,8 @@ import org.java_websocket.handshake.ServerHandshake;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.java_websocket.client.WebSocketClient;
 
@@ -24,24 +26,32 @@ import java.util.List;
 @Service
 @Slf4j
 public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient{
-    private WebSocketClient webSocketClient;
-    private boolean connected = false;
-    private static final String OPEN_COINBASE_WS_URL = "wss://ws-feed.exchange.coinbase.com";
-    private static final String PRIVATE_COINBASE_WS_URL = "wss://ws-feed.exchange.coinbase.com";
-    private List<String> subscribedSymbols = new ArrayList<>();
-    private boolean authenticated = false;
-
+    /**
+     * Connects to the Coinbase WebSocket feed and starts streaming data.
+     * Authenticates if API credentials are provided.
+     */
     @Value("${coinbase.api.key:}")
     private String apiKey;
     @Value("${coinbase.api.secret:}")
     private String apiSecret;
     @Value("${coinbase.api.passphrase:}")
     private String passphrase;
+    @Value("${coinbase.api.url.public}")
+    private String PRIVATE_COINBASE_WS_URL;
+    @Value("${coinbase.api.url.private}")
+    private String OPEN_COINBASE_WS_URL = "";
+    private boolean connected = false;
+    private boolean authenticated = false;
+    private List<String> subscribedSymbols = new ArrayList<>();
+    private KafkaTemplate<String, MarketDataEvent> kafkaTemplate;
+    private WebSocketClient webSocketClient;
 
-    /**
-     * Connects to the Coinbase WebSocket feed and starts streaming data.
-     * Authenticates if API credentials are provided.
-     */
+
+    @Autowired
+    public CoinbaseWebsocketClient(KafkaTemplate<String, MarketDataEvent> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
     @Override
     public void connect() throws URISyntaxException {
         connect(subscribedSymbols);
@@ -51,7 +61,7 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
      * Connects to the Coinbase WebSocket feed with specific symbols.
      * @param symbols list of symbols to subscribe to
      */
-    private void connect(List<String> symbols) throws URISyntaxException {
+    public void connect(List<String> symbols) throws URISyntaxException {
         if (connected) return;
         this.subscribedSymbols = symbols != null ? symbols : new ArrayList<>();
 
@@ -68,8 +78,7 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
             public void onMessage(String message) {
                 try {
                     MarketDataEvent event = new MarketDataEvent(message, "coinbase");
-                    //TODO replace with kafka producer event
-                    //eventPublisher.publishEvent(event);
+                    kafkaTemplate.send("coinbase", event);
                 } catch (Exception e) {
                     log.error("Failed to process WebSocket message: {}", message, e);
                 }
@@ -99,9 +108,7 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
         }
 
         // Convert list to JSON array format
-        String productIdsJson = productIds.isEmpty() ?
-                "[\"BTC-USD\",\"ETH-USD\"]" : // Default symbols if none provided
-                "[\"" + String.join("\",\"", productIds) + "\"]";
+        String productIdsJson =  "[\"" + String.join("\",\"", productIds) + "\"]";
 
         return String.format("""
         {"type": "subscribe", "channels": [{ "name": "ticker", "product_ids": %s }]}
