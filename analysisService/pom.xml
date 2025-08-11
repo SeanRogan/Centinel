@@ -18,14 +18,27 @@
 		<license/>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<id>srogan</id>
+			<name>Sean Rogan</name>
+			<email>sean@cstructure.com</email>
+			<url>https://github.com/seanrogan</url>
+			<roles>
+				<role>Lead Developer</role>
+				<role>Architect</role>
+			</roles>
+			<timezone>America/New_York</timezone>
+		</developer>
 	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/seanrogan/centinel/issues</url>
+	</issueManagement>
+
+	<ciManagement>
+		<system>GitHub Actions</system>
+		<url>https://github.com/seanrogan/centinel/actions</url>
+	</ciManagement>
 	<properties>
 		<java.version>24</java.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
