@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: monitor-service
+  config:
+    import: "zookeeper:"
+  data:
+    rest:
+      base-path: /
+  profiles:
+    active: dev
+
+coinbase:
+  api:
+    url:
+      public: wss://ws-feed.exchange.coinbase.com
+      private:
+    key: ${COINBASE_API_KEY:}
+    secret: ${COINBASE_API_SECRET:}
+    passphrase: ${COINBASE_API_PASSPHRASE:}
+
+# Server Configuration
+server:
+  port: 8080
+
+# Management endpoints for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+kafka:
+  topic:
+    market-data: market-data
+  producer:
+    acks: 1
+    retries: 3
+  listener:
+    ack-mode: manual
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
