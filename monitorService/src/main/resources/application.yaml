@@ -1,6 +1,8 @@
 spring:
   application:
-    name: exchange monitor service
+    name: monitor-service
+  config:
+    import: "zookeeper:"
   data:
     rest:
       base-path: /
@@ -29,3 +31,12 @@ management:
   endpoint:
     health:
       show-details: always
+kafka:
+  topic:
+    market-data: market-data
+  producer:
+    acks: 1
+    retries: 3
+  listener:
+    ack-mode: manual
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

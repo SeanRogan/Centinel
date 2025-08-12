@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: "zookeeper:"
   kafka:
     consumer:
       group-id: market-data-consumer

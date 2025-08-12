@@ -1,20 +1,14 @@
 spring:
-  sql:
-    init:
-      mode: always
-      continue-on-error: false
-      separator: ';'
   kafka:
-    consumer:
-      group-id: market-data-consumer
-      auto-offset-reset: earliest
-      enable-auto-commit: false
+    topic:
+      market-data: market-data
     producer:
       acks: 1
       retries: 3
     listener:
       ack-mode: manual
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
 # Market Data Configuration
 market:
   data:
