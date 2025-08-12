@@ -6,8 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.handshake.ServerHandshake;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.java_websocket.client.WebSocketClient;
@@ -37,9 +35,11 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
     @Value("${coinbase.api.passphrase:}")
     private String passphrase;
     @Value("${coinbase.api.url.public}")
-    private String PRIVATE_COINBASE_WS_URL;
+    private String PUBLIC_COINBASE_WS_URL;
     @Value("${coinbase.api.url.private}")
-    private String OPEN_COINBASE_WS_URL = "";
+    private String PRIVATE_COINBASE_WS_URL;
+    @Value("${kafka.topic.market-data:coinbase-market-data}")
+    private String kafkaTopic;
     private boolean connected = false;
     private boolean authenticated = false;
     private List<String> subscribedSymbols = new ArrayList<>();
@@ -52,25 +52,25 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    @Override
-    public void connect() throws URISyntaxException {
-        connect(subscribedSymbols);
-    }
-
     /**
      * Connects to the Coinbase WebSocket feed with specific symbols.
      * @param symbols list of symbols to subscribe to
      */
+    @Override
     public void connect(List<String> symbols) throws URISyntaxException {
         if (connected) return;
         this.subscribedSymbols = symbols != null ? symbols : new ArrayList<>();
 
-        webSocketClient = new WebSocketClient(new URI(OPEN_COINBASE_WS_URL)) {
+        // Use public URL for market data streaming
+        String wsUrl = PUBLIC_COINBASE_WS_URL;
+        log.info("Connecting to Coinbase WebSocket at: {}", wsUrl);
+
+        webSocketClient = new WebSocketClient(new URI(wsUrl)) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
                 // Subscribe to ticker channel for the specified symbols
                 String subscribeMessage = buildSubscribeMessage(subscribedSymbols);
-                send(subscribeMessage);
+                webSocketClient.send(subscribeMessage);
                 connected = true;
                 log.info("Connected to Coinbase WebSocket and subscribed to symbols: {}", subscribedSymbols);
             }
@@ -78,7 +78,8 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
             public void onMessage(String message) {
                 try {
                     MarketDataEvent event = new MarketDataEvent(message, "coinbase");
-                    kafkaTemplate.send("coinbase", event);
+                    kafkaTemplate.send(kafkaTopic, event);
+                    log.debug("Sent market data event to Kafka topic: {}", kafkaTopic);
                 } catch (Exception e) {
                     log.error("Failed to process WebSocket message: {}", message, e);
                 }
@@ -88,6 +89,7 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
                 try {
                     webSocketClient.close(code, reason);
                     connected = false;
+                    log.info("WebSocket connection closed. Code: {}, Reason: {}, Remote: {}", code, reason, remote);
                 } catch (Exception e) {
                     log.error("Failed to close websocket client: {}", reason, e);
                 }
@@ -169,6 +171,7 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
             try {
                 webSocketClient.close();
                 connected = false;
+                log.info("Disconnected from Coinbase WebSocket");
             } catch (Exception e) {
                 log.error("Failed to close websocket client", e);
             }

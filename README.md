@@ -9,3 +9,8 @@ The project is created with Java/SpringBoot and uses a microservices architectur
 #### This service analyzed the data loaded by the monitor service into the timescale DB and looks for trade opportunities.
 ### The Execution Service:
 #### This service recieves trade signals from the Analysis service and executes the trades on various exchanges.
+
+## Starting the System
+### Docker
+You can start the system locally with 
+```docker-compose up```

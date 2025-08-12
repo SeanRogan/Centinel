@@ -1,4 +1,8 @@
 package com.fedelis.centinel.monitor.client;
+
+import java.net.URISyntaxException;
+import java.util.List;
+
 /**
  * Blueprint interface for WebSocket clients streaming market data from exchanges.
  * Implementations should handle connection lifecycle and message streaming.
@@ -6,9 +10,9 @@ package com.fedelis.centinel.monitor.client;
 public interface ExchangeConnectorWebsocketClient {
     /**
      * Connects to the exchange WebSocket feed and starts streaming data.
-     * @throws Exception if connection fails
+     * @throws URISyntaxException if connection fails
      */
-    void connect() throws Exception;
+    void connect(List<String> symbols) throws URISyntaxException;
 
     /**
      * Disconnects from the exchange WebSocket feed.
