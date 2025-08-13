@@ -4,7 +4,7 @@ services:
     image: timescale/timescaledb:latest-pg15
     container_name: timescaledb
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: centinel_test
       POSTGRES_USER: centinel_test
       POSTGRES_PASSWORD: postpass
       TIMESCALEDB_TELEMETRY: off
@@ -46,7 +46,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -71,10 +71,10 @@ services:
         condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_CLOUD_ZOOKEEPER_CONNECT_STRING: zookeeper:2181
-      SPRING_DATASOURCE_URL: jdbc:postgresql://timescaledb:5432/postgres
-      SPRING_DATASOURCE_USERNAME: centinal_test
+      SPRING_DATASOURCE_URL: jdbc:postgresql://timescaledb:5432/centinel_test
+      SPRING_DATASOURCE_USERNAME: centinel_test
       SPRING_DATASOURCE_PASSWORD: postpass
     ports:
       - "8081:8080"
@@ -97,11 +97,12 @@ services:
         condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_CLOUD_ZOOKEEPER_CONNECT_STRING: zookeeper:2181
-      SPRING_DATASOURCE_URL: jdbc:postgresql://timescaledb:5432/postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://timescaledb:5432/centinel_test
       SPRING_DATASOURCE_USERNAME: centinel_test
       SPRING_DATASOURCE_PASSWORD: postpass
+      PGPASSWORD: postpass
     ports:
       - "8082:8080"
     networks:
@@ -123,9 +124,9 @@ services:
         condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_CLOUD_ZOOKEEPER_CONNECT_STRING: zookeeper:2181
-      SPRING_DATASOURCE_URL: jdbc:postgresql://timescaledb:5432/postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://timescaledb:5432/centinel_test
       SPRING_DATASOURCE_USERNAME: centinel_test
       SPRING_DATASOURCE_PASSWORD: postpass
     ports:

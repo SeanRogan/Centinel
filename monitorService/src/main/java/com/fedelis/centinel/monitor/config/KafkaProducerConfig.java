@@ -16,7 +16,7 @@ import java.util.Map;
 
 @Configuration
 public class KafkaProducerConfig {
-    @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
+    @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
     @Bean
     public ProducerFactory<String, MarketDataEvent> producerFactory() {
@@ -24,6 +24,10 @@ public class KafkaProducerConfig {
         configMap.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configMap.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configMap.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        
+        configMap.put(JsonSerializer.TYPE_MAPPINGS, "market-data:com.fedelis.centinel.monitor.model.MarketDataEvent");
+        configMap.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+        
         // Optimize for low-latency financial data
         configMap.put(ProducerConfig.ACKS_CONFIG, "1"); // Fast acknowledgment
         configMap.put(ProducerConfig.RETRIES_CONFIG, 3);

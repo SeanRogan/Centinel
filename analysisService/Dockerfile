@@ -33,6 +33,12 @@ WORKDIR /app
 # Copy the built jar from builder stage
 COPY --from=builder /app/target/*.jar app.jar
 
+# Copy migration script
+COPY src/main/resources/db/migration/V1__create_timescale_hypertable.sql /app/migration.sql
+
+# Install PostgreSQL client for running migrations
+RUN apk add --no-cache postgresql-client
+
 # Change ownership to app user
 RUN chown -R appuser:appgroup /app
 
@@ -46,5 +52,25 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Create startup script
+COPY --chown=appuser:appgroup <<EOF /app/start.sh
+#!/bin/sh
+# Wait for database to be ready
+echo "Waiting for database to be ready..."
+until pg_isready -h timescaledb -p 5432 -U centinel_test; do
+  sleep 2
+done
+
+# Run migration script
+echo "Running TimescaleDB migration..."
+psql -h timescaledb -p 5432 -U centinel_test -d postgres -f /app/migration.sql
+
+# Start the application
+echo "Starting analysis service..."
+exec java -jar app.jar
+EOF
+
+RUN chmod +x /app/start.sh
+
+# Run the startup script
+ENTRYPOINT ["/app/start.sh"]
