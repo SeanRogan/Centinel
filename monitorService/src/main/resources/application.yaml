@@ -6,22 +6,15 @@ spring:
   data:
     rest:
       base-path: /
-  profiles:
-    active: dev
-
-coinbase:
-  api:
-    url:
-      public: wss://ws-feed.exchange.coinbase.com
-      private:
-    key: ${COINBASE_API_KEY:}
-    secret: ${COINBASE_API_SECRET:}
-    passphrase: ${COINBASE_API_PASSPHRASE:}
-
-# Server Configuration
-server:
-  port: 8080
-
+  kafka:
+    producer:
+      acks: 1
+      retries: 5
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+# Market Data Configuration
+market:
+  data:
+    symbols: BTC-USD,ETH-USD,ADA-USD,SOL-USD
 # Management endpoints for monitoring
 management:
   endpoints:
@@ -31,12 +24,17 @@ management:
   endpoint:
     health:
       show-details: always
+coinbase:
+  api:
+    url:
+      public: wss://ws-feed.exchange.coinbase.com
+      private:
+    key: ${COINBASE_API_KEY:}
+    secret: ${COINBASE_API_SECRET:}
+    passphrase: ${COINBASE_API_PASSPHRASE:}
 kafka:
   topic:
-    market-data: market-data
-  producer:
-    acks: 1
-    retries: 3
-  listener:
-    ack-mode: manual
-  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    market-data: coinbase-market-data
+# Server Configuration
+server:
+  port: 8080

@@ -6,8 +6,6 @@ spring:
   data:
     rest:
       base-path: /
-  profiles:
-    active: dev
 
 # Server Configuration
 server:
