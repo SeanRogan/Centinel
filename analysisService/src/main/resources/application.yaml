@@ -8,18 +8,9 @@ spring:
       base-path: /
   kafka:
     consumer:
-      max-poll-records: 100
-      max-poll-interval-ms: 300000
-      min-batch-size: 10
-      max-batch-size: 100
-      max-partition-fetch-bytes: 10485760
-      min-partition-fetch-bytes: 1024
       bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
       group-id: analysis-service-group
       auto-offset-reset: earliest
-      # Remove conflicting deserializer configuration
-      # key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      # value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://timescaledb:5432/centinel_test}
     username: ${SPRING_DATASOURCE_USERNAME:centinel_test}
