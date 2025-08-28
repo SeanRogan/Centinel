@@ -68,55 +68,18 @@ spring:
 ## Running the Service
 
 ### Development Mode
-
+In the parent Centinel directory run:
 ```bash
-mvn spring-boot:run
-```
-
-### Production Mode
-
-```bash
-mvn clean package
-java -jar target/analysis-0.0.1-SNAPSHOT.jar
-```
-
-### Docker
-
-```bash
-docker build -t analysis-service .
-docker run -p 8080:8080 analysis-service
+docker compose up -d
 ```
 
 ## API Endpoints
 
-### Health Checks
-
-- `GET /api/health` - Basic health status
-- `GET /api/health/ready` - Readiness check
-- `GET /actuator/health` - Spring Boot Actuator health endpoint
-
-### Example Response
-
-```json
-{
-  "status": "UP",
-  "service": "analysis-service",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "version": "1.0.0"
-}
-```
-
 ## Kafka Consumer Configuration
-
-The service includes two Kafka listeners:
-
-1. **Batch Listener**: Processes multiple messages at once for better throughput
-2. **Single Listener**: Processes individual messages for real-time processing
 
 ### Consumer Groups
 
 - `analysis-service-group` - Batch processing
-- `analysis-service-group-single` - Single message processing
 
 ### Error Handling
 
@@ -195,40 +158,6 @@ Spring Boot Actuator provides metrics for:
 - Kafka consumer lag
 - Database connection pool
 - Application performance
-- Custom business metrics
-
-## Development
-
-### Adding New Analysis
-
-To add new analysis capabilities:
-
-1. Extend `MarketDataAnalysisService`
-2. Implement analysis logic in `performAnalysis` method
-3. Add any required dependencies
-4. Configure async execution if needed
-
-### Custom Queries
-
-Add custom TimescaleDB queries to `MarketDataRepository`:
-
-```java
-@Query(value = "SELECT time_bucket('1 hour', time) AS bucket, " +
-               "AVG(price) as avg_price " +
-               "FROM market_data " +
-               "WHERE product_id = :productId " +
-               "GROUP BY bucket", nativeQuery = true)
-List<Object[]> getHourlyAverages(@Param("productId") String productId);
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Kafka Connection**: Ensure Kafka is running and accessible
-2. **Database Connection**: Verify TimescaleDB credentials and connectivity
-3. **Message Deserialization**: Check JSON format matches expected structure
-4. **Memory Issues**: Monitor heap usage for large message batches
 
 ### Debug Mode
 
@@ -240,13 +169,6 @@ logging:
     com.fedelis.centinel.analysis: DEBUG
     org.springframework.kafka: DEBUG
 ```
-
-## Contributing
-
-1. Follow the existing code style
-2. Add tests for new functionality
-3. Update documentation
-4. Ensure all tests pass before submitting
 
 ## License
 
