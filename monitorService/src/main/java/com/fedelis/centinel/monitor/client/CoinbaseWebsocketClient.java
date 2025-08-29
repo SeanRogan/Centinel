@@ -40,12 +40,12 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
     private String PRIVATE_COINBASE_WS_URL;
     @Value("${kafka.topic.market-data:coinbase-market-data}")
     private String kafkaTopic;
+    private final String exchangeName = "coinbase";
     private boolean connected = false;
     private boolean authenticated = false;
     private List<String> subscribedSymbols = new ArrayList<>();
     private KafkaTemplate<String, MarketDataEvent> kafkaTemplate;
     private WebSocketClient webSocketClient;
-
 
     @Autowired
     public CoinbaseWebsocketClient(KafkaTemplate<String, MarketDataEvent> kafkaTemplate) {
@@ -68,20 +68,29 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
         webSocketClient = new WebSocketClient(new URI(wsUrl)) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
-                // Subscribe to ticker channel for the specified symbols
-                String subscribeMessage = buildSubscribeMessage(subscribedSymbols);
-                webSocketClient.send(subscribeMessage);
-                connected = true;
-                log.info("Connected to Coinbase WebSocket and subscribed to symbols: {}", subscribedSymbols);
+                try {
+                    // Subscribe to ticker channel for the specified symbols
+                    String subscribeMessage = buildSubscribeMessage(subscribedSymbols);
+                    webSocketClient.send(subscribeMessage);
+                    connected = true;
+                    log.info("Connected to Coinbase WebSocket and subscribed to symbols: {}", subscribedSymbols);
+                } catch (Exception e) {
+                    connected = false;
+                    log.error("❌ Failed to connect to Coinbase WebSocket", e);
+                }
             }
+
             @Override
             public void onMessage(String message) {
                 try {
-                    MarketDataEvent event = new MarketDataEvent(message, "coinbase");
+                    // Create MarketDataEvent with the raw message for now
+                    MarketDataEvent event = new MarketDataEvent(message, exchangeName);
+                    
+                    log.debug("✉️ Websocket Message Received");
                     kafkaTemplate.send(kafkaTopic, event);
-                    log.debug("Sent market data event to Kafka topic: {}", kafkaTopic);
+                    log.debug("✉️ Sent market data event to Kafka topic: {}", kafkaTopic);
                 } catch (Exception e) {
-                    log.error("Failed to process WebSocket message: {}", message, e);
+                    log.error("❌ Failed to process WebSocket message: {}", message, e);
                 }
             }
             @Override
@@ -89,15 +98,15 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
                 try {
                     webSocketClient.close(code, reason);
                     connected = false;
-                    log.info("WebSocket connection closed. Code: {}, Reason: {}, Remote: {}", code, reason, remote);
+                    log.info("✅ WebSocket connection closed. Code: {}, Reason: {}, Remote: {}", code, reason, remote);
                 } catch (Exception e) {
-                    log.error("Failed to close websocket client: {}", reason, e);
+                    log.error("❌ Failed to close websocket client: {}", reason, e);
                 }
             }
             @Override
             public void onError(Exception ex) {
                 connected = false;
-                log.error("There was an error with the Websocket:", ex);
+                log.error("❌ There was an error with the Websocket:", ex);
             }
         };
         webSocketClient.connect();
@@ -105,6 +114,7 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
 
 
     private String buildSubscribeMessage(List<String> productIds) {
+        //todo build out option to sub to other channels
         if (authenticated) {
             return buildAuthenticatedSubscribeMessage(productIds);
         }
@@ -143,7 +153,7 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
             }
             """, productIdsJson, signature, apiKey, passphrase, timestamp);
         } catch (Exception e) {
-            log.error("Failed to build authenticated subscribe message", e);
+            log.error("❌ Failed to build authenticated subscribe message", e);
             throw new RuntimeException("Failed to build authenticated subscribe message", e);
         }
     }
@@ -155,11 +165,17 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
      * @return the base64-encoded signature
      */
     private String generateSignature(String prehash, String secret) throws Exception {
-        SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(secret), "HmacSHA256");
-        Mac sha256 = Mac.getInstance("HmacSHA256");
-        sha256.init(secretKeySpec);
-        byte[] hash = sha256.doFinal(prehash.getBytes(StandardCharsets.UTF_8));
-        return Base64.getEncoder().encodeToString(hash);
+        log.debug("🔄 Generating signature for authentication" );
+        try {
+            SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(secret), "HmacSHA256");
+            Mac sha256 = Mac.getInstance("HmacSHA256");
+            sha256.init(secretKeySpec);
+            byte[] hash = sha256.doFinal(prehash.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (Exception e) {
+            log.error("❌ Failed to generate signature", e);
+            throw new RuntimeException("Failed to generate signature", e);
+        }
     }
 
     /**
@@ -169,11 +185,12 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
     public void disconnect() {
         if (webSocketClient != null && connected) {
             try {
+                log.info("🔄 Closing Coinbase WebSocket connection");
                 webSocketClient.close();
                 connected = false;
-                log.info("Disconnected from Coinbase WebSocket");
+                log.info("✅ Disconnected from Coinbase WebSocket");
             } catch (Exception e) {
-                log.error("Failed to close websocket client", e);
+                log.error("❌ Failed to close websocket client", e);
             }
         }
     }
@@ -184,6 +201,12 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
      */
     @Override
     public boolean isConnected() {
+        log.debug("🔎 Checking if Coinbase WebSocket is connected: {}", connected);
+        if (connected) {
+            log.debug("✅ WebSocket is connected");
+        } else {
+            log.warn("⚠️ WebSocket is not connected");
+        }
         return connected;
     }
 
@@ -194,7 +217,11 @@ public class CoinbaseWebsocketClient implements ExchangeConnectorWebsocketClient
     @Override
     public void sendMessage(String message) {
         if (webSocketClient != null && connected) {
+            log.debug("🔄 Sending message to Coinbase WebSocket: {}", message);
             webSocketClient.send(message);
+        } else {
+            log.error("❌ WebSocket is not connected, failed to send message: {}", message);
         }
     }
+
 }
