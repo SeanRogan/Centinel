@@ -46,6 +46,22 @@ signal:
     emaLong: 26
     macdSignal: 9
     arbitrageThreshold: 0.0025
+# Multi-timeframe Analysis Configuration
+analysis:
+  multi-timeframe:
+    enabled: true
+    short-term-interval: 30000  # 30 seconds
+    long-term-interval: 300000  # 5 minutes
+    status-log-interval: 60000  # 1 minute
+    min-signal-strength: 0.3
+    timeframes:
+      - M1
+      - M5
+      - M15
+      - H1
+      - H4
+      - D1
+
 # Logging Configuration
 logging:
   level:
